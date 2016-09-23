@@ -1,0 +1,6 @@
+TODO: Implement a 'chat' feature so two or more broadcast teams can communicate
+TODO: Add auto-timer to text-prompts so that they dissappear after a specific time
+
+===
+
+DONE: Disable panel-heading click to prevent panel from disappearing

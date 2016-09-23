@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Worship Program Roles</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <link rel="stylesheet" href="/stylesheets/bootstrap.min.css" type="text/css">
+  <style>
+    body { padding-top: 70px; }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-default navbar-fixed-top">
+  <div class="container-fluid">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span> <!-- 'sr-only' means 'screen-reader only' -->
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="#">Worship A/V Graphics</a>
+    </div>
+
+    <!-- Collect the nav links, forms, and other content for toggling -->
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav">
+        <li><a href="/">Program</a></li>
+        <li><a href="control">Control</a></li>
+        <li class="active dropdown">
+          <a class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Parts <span class="caret"></span></a>
+          <ul class="dropdown-menu">
+            <li><a id="programnewmw">New Morning Worship Program</a></li>
+            <li><a id="programnewassembly">New Assembly Program</a></li>
+            <li><a id="programnew">New Empty Program</a></li>
+            <li role="separator" class="divider"></li>
+            <li><a id="programrefresh">Refresh</a></li>
+            <li><a id="programsave">Save</a></li>
+            <li role="separator" class="divider"></li>
+            <li><a id="programerase">Erase Current Program</a></li>
+          </ul>
+        </li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li><a href="help">Help</a></li>
+      </ul>
+    </div><!-- /.navbar-collapse -->
+  </div><!-- /.container-fluid -->
+</nav>
+<div class="container-fluid">
+  <div class="row">
+    <p id="notifications" class="col-sm-12">
+      &nbsp;
+      <!-- <span class="label label-default">Notifications:</span> -->
+    </p>
+  </div>
+	<div class="row">
+		<div id="roles" class="col-sm-12 form-horizontal">
+      <div class="form-group programitem">
+        <label for="bug" class="col-sm-2 control-label">Corner Bug</label>
+        <div class="col-sm-10">
+          <input type="text" id="bug" class="form-control programdetail input-sm" originalvalue="" name="bug">
+          <span id="bugHelpBlock" class="help-block">The thing that appears at the bottom-right of the screen. Can be any HTML code, text or left blank for a simple clock.</span>
+        </div>
+      </div>
+      <div class="form-group programitem">
+        <label for="title" class="col-sm-2 control-label">Title</label>
+        <div class="col-sm-10">
+          <input type="text" id="title" class="form-control programdetail input-sm" originalvalue="" name="title">
+          <span id="titleHelpBlock" class="help-block">The main title of program. Like: <em>Morning Worship</em>, <em>Special Assembly</em>, etc</span>
+        </div>
+      </div>
+      <div class="form-group programitem">
+        <label for="subtitle" class="col-sm-2 control-label">Subtitle</label>
+        <div class="col-sm-10">
+          <input type="text" id="subtitle" class="form-control programdetail input-sm" originalvalue="" name="subtitle">
+          <span id="subtitleHelpBlock" class="help-block">A subtitle or session name of the program. Subtitles appear as small text along with the main title (above). Examples: <em>Wednesday, June 10, 2016</em>, <em>Morning Session</em> or a session title</span>
+        </div>
+      </div>
+      <div class="form-group programitem">
+        <label for="chairman1" class="col-sm-2 control-label">Chairman</label>
+        <div class="col-sm-10">
+          <input type="text" id="chairman1" class="form-control programdetail input-sm" originalvalue="" name="chairman1">
+          <span id="chairman1HelpBlock" class="help-block">The main chairman, presider or announcer</span>
+        </div>
+      </div>
+      <div class="form-group programitem">
+        <label for="chairman2" class="col-sm-2 control-label">Secondary Chairman</label>
+        <div class="col-sm-10">
+          <input type="text" id="chairman2" class="form-control programdetail input-sm" originalvalue="" name="chairman2">
+          <span id="chairman2HelpBlock" class="help-block">A sub-chairman, reader, interpreter or other person not attached to a specific part</span>
+        </div>
+      </div>
+    </div>
+	</div>
+	<div class="row">
+		<pre id="logs"></pre>
+	</div>
+</div>
+<script src="/javascripts/jquery.js"></script>
+<script src="/javascripts/bootstrap.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  var program;
+	var socket = io();
+	var logIt = function(string) {
+		$("#logs").append(string + "\n");
+	};
+
+  var drawNotification = function(text,type) {
+    var baseType = "label"   // Can be "alert" for alert-type notifications
+    var id = Date.now();
+    if(!text) return;
+    type = type || "danger";
+    type = baseType + "-" + type;
+    var notificationText = "<div id=\"" + id + "\" class=\"notification " + baseType +"\" role=\"notification\">" + text + "</div>";
+    $("#notifications").append(notificationText);
+    $(".notification#" + id).addClass(type);
+    
+    var fadeTimer = setTimeout(function(){
+      $(".oldnotification").remove();
+      $("#" + id).fadeOut();
+      $("#" + id).addClass("oldnotification");
+    },4000);
+  }
+  
+  /*
+  var clearOldNotifications = function() {
+    $(".oldnotification").remove();
+  }
+  */
+  
+	var drawInput = function(number) {
+		//if($("#parts-" + number + "-name").length>0) return;
+    var insertionString = "<div class=\"form-group programitem\" part=\"" + number + "\">\
+        <label for=\"parts-" + number + "-name\" class=\"col-sm-2 control-label\">Part " + (number + 1) + " Name</label>\
+        <div class=\"col-sm-10\">\
+          <input type=\"text\" id=\"parts-" + number + "-name\" class=\"form-control programdetail programpart partname input-sm\" originalvalue=\"\" name=\"parts-" + number + "-name\">\
+          <span id=\"partNameHelpBlock\" class=\"help-block\">Name appears more prominently than Title. Depending on the context, you might assign the partiticipant's name to this field.</span>\
+        </div>\
+      </div>";
+		$("#roles").append(insertionString);
+    $("#parts-" + number + "-name").keyup(eventKeyUp);
+		$("#parts-" + number + "-name").blur(eventBlur);
+    insertionString = "<div class=\"form-group programitem\" part=\"" + number + "\">\
+        <label for=\"parts-" + number + "-title\" class=\"col-sm-2 control-label\">Part " + (number + 1) + " Title</label>\
+        <div class=\"col-sm-10\">\
+          <input type=\"text\" id=\"parts-" + number + "-title\" class=\"form-control programdetail programpart partname input-sm\" originalvalue=\"\" name=\"parts-" + number + "-title\">\
+          <span id=\"partNameHelpBlock\" class=\"help-block\">Title appears less prominently than Name. Sometimes this field is better for participant's names.</span>\
+        </div>\
+      </div>";
+    $("#roles").append(insertionString);
+		$("#parts-" + number + "-title").keyup(eventKeyUp);
+		$("#parts-" + number + "-title").blur(eventBlur);
+	};
+		
+	var fillInputs = function(program) {
+		var domObj,
+        programItem,
+        programItems = Object.keys(program);
+
+		while(programItem = programItems.shift()) {
+			if(programItem == "parts") continue;
+			domObj = $("input#" + programItem).get();
+			fillInput(domObj,program[programItem]);
+		}
+		
+		var partsCount = Object.keys(program.parts).length;
+    
+		for(var count=0;count<=partsCount+1;count++) {
+			var partName = "parts-" + count;
+			if($("[part=\"" + count + "\"]").size()<1) drawInput(count);
+			
+      if(program.parts.hasOwnProperty(count)) {
+        domObj = $("input#" + partName + "-name").get();
+        fillInput(domObj,program.parts[count]["name"]);
+        domObj = $("input#" + partName + "-title").get();
+        fillInput(domObj,program.parts[count]["title"]);        
+      } else {
+        clearInput(count);
+      }
+		}
+		
+    // This last drawInput draw a set of blank part fields
+		//drawInput(count);
+		
+    var numPartsShown = $("[part]").size();
+    if(numPartsShown>0) {
+      logIt("There are " + (numPartsShown/2) + " parts fields showing");
+      if((partsCount+1)<(numPartsShown/2)) {  // Delete some extra parts fields
+                                              // This happens if parts are deleted
+        logIt("There are extra parts detected");
+        for(var c=((numPartsShown/2)-1); c>=(partsCount+1); c--) {
+          logIt("Removing extra part field: " + c);
+          $("[part=\"" + c + "\"]").remove();
+          /* When we delete a part, the last part (that got deleted) will still
+           * be brown (indicating changed data). So, we have to clear the brown
+           * from the empty field.
+           */
+          $(".has-warning").removeClass("has-warning");
+        }
+      } else {
+        logIt("There are " + partsCount + " parts and " + (numPartsShown/2) + " parts fields showing");
+      }
+    }
+    
+		return;				
+	};
+
+	var fillInput = function(domObj, value) {
+    if($(domObj).val()!=value) $(domObj).val(value);
+    if($(domObj).attr("originalvalue")!=value) {
+      $(domObj).attr("originalValue", value);
+      if($(domObj).parent().hasClass("has-warning")) $(domObj).parent().removeClass("has-warning");
+      $(domObj).parent().addClass("has-success");
+      var fadeTimer = setTimeout(function(){
+        if($(domObj).parent().hasClass("has-success"))
+          $(domObj).parent().removeClass("has-success");
+      },2000);
+    }
+	};
+
+  var clearInput = function(count) {
+    logIt("Clearing input for input " + count);
+    $("#parts-" + count + "-name").val('');
+    $("#parts-" + count + "-name").attr("originalvalue",'');
+    $("#parts-" + count + "-title").val('');
+    $("#parts-" + count + "-title").attr("originalvalue",'');
+
+  };
+  
+  var refreshTitles = function() {
+    // Clear screen and re-pull titles
+    //$("#roles").empty();
+    getProgram();
+  }
+  
+	var inputHasChanged = function(target) {
+		if($(target).attr("originalvalue")!=$(target).val()) {
+			$(target).addClass("inputChanged");
+      $(target).parent().addClass("has-warning");
+			return true;
+		} else {
+			$(target).removeClass("inputChanged");
+      $(target).parent().removeClass("has-warning");
+			return false;
+		}
+	};
+	
+	var eventKeyUp = function(event) {
+		inputHasChanged(event.target);
+		event.stopPropagation();
+	};
+	
+	var eventBlur = function(event) {
+		if(inputHasChanged(event.target)) {
+      saveInput(event.target);
+      /*
+			saveInput(event.target, function() {
+				fillInputs(program);
+				inputHasChanged(event.target);
+			});
+			*/
+		};
+		event.stopPropagation();
+	}
+
+	var saveInput = function(target, callback) {
+		var programItem, programItems = Object.keys(program);
+		var targetElement = $(target).attr("id").split("-");
+		if(targetElement.length==3) {
+			prg = program;
+			for(var count=0;count<(targetElement.length-1);count++) {
+				if(!prg.hasOwnProperty(targetElement[count])) prg[targetElement[count]] = {};
+				prg = prg[targetElement[count]];
+			}
+			prg[targetElement[(targetElement.length-1)]] = $(target).val();
+		} else {
+			if(programItems.indexOf(targetElement[0])!=-1) {
+				program[targetElement[0]] = $(target).val();
+			}
+		}
+		saveToStorage(program);
+		if(callback) callback();
+	};
+		
+	var saveToStorage = function(data) {
+		localStorage.setItem("program",data);
+		socket.emit('setprogram',JSON.stringify(data));
+	};
+  
+  var eraseTitles = function() {
+    socket.emit('eraseprogram');
+  }
+	  
+  var getProgram = function(programName) {
+    socket.emit('getprogram',programName);
+  }
+
+  socket.on("program",function(data) {
+    //alert(data);
+    program = JSON.parse(data);
+    fillInputs(program);
+    drawNotification("Program update successful","success");
+  });
+  
+	$("#clearscreen").click(function() {
+		socket.emit('command',{command:'clear'});
+	});
+
+  $("#programrefresh").click(function() {
+    refreshTitles();
+  });
+  
+  $("#programsave").click(function() {
+    saveToStorage(program);
+  });
+  
+  $("#programerase").click(function() {
+    eraseTitles();
+  });
+  
+  $("#programnewmw").click(function() {
+    getProgram("mw");
+  });
+  
+  $("#programnewassembly").click(function() {
+    getProgram("assembly");
+  });
+  
+  $("#programnew").click(function() {
+    getProgram("empty");
+  });
+  
+	$("#getmedia").click(function() {
+		socket.emit('getmedia',{command:'getmedia'});
+	});
+
+	$("#playmedia").click(function() {
+		socket.emit('command',{command:'playmedia',param:'/music/FirstTrainHome.m4a'});
+	});
+
+	$("#playvideo").click(function() {
+		socket.emit('command',{command:'playmedia',param:'/video/Climb.mp4'});
+	});
+
+	$("#clearmedia").click(function() {
+		socket.emit('command',{command:'clearmedia'});
+	});
+  
+	$(document).ready(function() {
+  	$("input.programdetail").keyup(eventKeyUp);
+    $("input.programdetail").blur(eventBlur);
+		getProgram();
+	});
+</script>
+</body>
+</html>

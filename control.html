@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Worship Program Control</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+	<link rel="stylesheet" href="/stylesheets/bootstrap.min.css" type="text/css">
+  <style>
+    body { padding-top: 70px; }
+    .mediafolder {
+      border: 1px solid #f6f6f6;
+      margin-bottom: 0.3em;
+      border-radius: 3px;
+    }
+    .folder-element {
+      padding: 0em;
+      padding-left: 0.5em;
+      margin-left: 0.5em;
+      border-left: 2px solid rgb(240,240,240);
+      border-bottom-left-radius: 8px;
+    }
+    .folder-label {
+      padding: 0em;
+      margin: 0.5em 0.5em 0em;
+      font-weight: bolder;
+      font-size: 1.1em;
+    }
+    .file-element {
+      font-size: 0.9em;
+      padding: 0.5em;
+      margin: 0.4em;
+      margin-top: 0px;
+      /* border: 1px solid #777; */
+      border-radius: 2px;
+      background: rgba(245,245,245,0.5);
+    }
+    .queueditem {
+      padding: 0.4em;
+      margin: 0.4em;
+      border: 1px solid #f0f0f0;
+      border-radius: 4px;
+      /* background: #eee; */
+      /* box-shadow: 0px 2px 2px #eee; */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .queueditem>.progress {
+      margin-top: 0.3em;
+      margin-bottom: 0px;
+    }
+    .queueitemtitle {
+
+    }
+    .nowplaying {
+      color: #5cb85c;
+      font-weight: bold;
+      border-color: #5cb85c;
+      box-shadow: none;
+      /* background: #5bc0de; */
+    }
+    .file-element.touched {
+      color: white;
+      background: #5bc0de;
+    }
+
+    .no-lines {
+      padding: 0;
+      border: 0px;
+    }
+
+    span.partname {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-default navbar-fixed-top">
+  <div class="container-fluid">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span> <!-- 'sr-only' means 'screen-reader only' -->
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="#">Worship A/V Graphics</a>
+    </div>
+
+    <!-- Collect the nav links, forms, and other content for toggling -->
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav">
+        <li><a href="/">Program</a></li>
+        <!-- <li><a href="control">Control</a></li> -->
+        <li class="active dropdown">
+          <a class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Control <span class="caret"></span></a>
+          <ul class="dropdown-menu">
+            <li><a id="getprogram">Load Parts</a></li>
+            <li><a id="getmedia">Get Media</a></li>
+            <li><a id="refreshmedia">Refresh Media List</a></li>
+            <!-- <li><a id="programSave">Save</a></li> -->
+            <li role="separator" class="divider"></li>
+            <li><a id="programErase">Erase Current Program</a></li>
+          </ul>
+        </li>
+				<li><a href="parts">Parts</a></li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li><a href="help">Help</a></li>
+      </ul>
+    </div><!-- /.navbar-collapse -->
+  </div><!-- /.container-fluid -->
+</nav>
+<div class="container-fluid">
+	<div class="row">
+    <div class="col-xs-12">
+      <div id="programpanel" class="panel panel-default">
+        <div id="programtextheading" class="panel-heading">Program Text <button id="getprogrambtn" type="button" class="close" aria-label="Get"><span class="glyphicon glyphicon-cloud-download"></span></button></div>
+        <div id="programctl" class="list-group"></div>
+      </div>
+    </div>
+	</div>
+	<div class="row">
+		<div class="col-sm-6">
+			<div class="panel panel-default">
+				<div class="panel-heading">Play Queue <!--<button id="getqueuebtn" type="button" class="close" aria-label="Get"><span class="glyphicon glyphicon-cloud-download"></span></button>--></div>
+        <div id="mediaplayer" class="panel-body">
+        </div>
+				<ul id="mediaqueuelist" class="list-group"></ul>
+			</div>
+		</div>
+		<div id="mediaqueue" class="col-sm-6">
+			<div id="mediaqueuepanel" class="panel panel-default">
+				<div id="medialibraryheading" class="panel-heading">Media Library <button id="getmediabtn" type="button" class="close" aria-label="Get"><span class="glyphicon glyphicon-cloud-download"></span></button></div>
+        <div id="medialist"><div class="folderbox"></div></div>
+      </div>
+		</div>
+	</div>
+	<div class="row">
+		<pre id="logs"></pre>
+	</div>
+</div>
+<script src="/javascripts/jquery.js"></script>
+<script src="/javascripts/bootstrap.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  var log_level = 1;
+	var mediaList = [];
+  var queueList = [];
+	var socket = io();
+  var standardPanelClass = "panel-default";
+
+  var mediaPlayer = {
+    mediaplayer: $("#mediaplayer").get(),
+    unrespondedMediaPlayerRequests:0,
+    requestPlayer: function() {
+      this.mediaPlayerCheck = setInterval(function() {
+        socket.emit('requestplayer');
+        //logIt(this.unrespondedMediaPlayerRequests);
+        if(this.unrespondedMediaPlayerRequests++>0) {
+          this.drawPlayerControls(false);
+        }
+      }.bind(this),5000);
+    },
+    clearMediaList: function() {
+      $("#medialist").children(".folderbox").empty();
+    },
+    clearQueueList: function() {
+      $('#mediaqueuelist').empty();
+    },
+    getQueueList: function() {
+      socket.emit('queuelist');
+    },
+    drawPlayerControls: function(confirmation) {
+      if(!confirmation) {
+        if($("#nomediaplayerwarning").get().length===0) $(this.mediaplayer).html("<div id=\"nomediaplayerwarning\" class=\"alert alert-warning\">Waiting for a media player...</div>");
+        return;
+      }
+      if($("#mediaplay").get().length===0) {
+        $(this.mediaplayer).html("\
+          <span class=\"glyphicon glyphicon-time\"></span>&nbsp;<span id=\"mediaplaytime\">00:00</span>\
+          <button id=\"mediastepback\" class=\"btn btn-default mediacontrolbutton\"><span class=\"glyphicon glyphicon-step-backward\"></span></button>\
+          <button id=\"mediaplay\" class=\"btn btn-success mediacontrolbutton\"><span class=\"glyphicon glyphicon-play\"></span></button>\
+          <button id=\"mediapause\" class=\"btn btn-default mediacontrolbutton\"><span class=\"glyphicon glyphicon-pause\"></span></button>\
+          <button id=\"mediastop\" class=\"btn btn-default mediacontrolbutton\"><span class=\"glyphicon glyphicon-stop\"></span></button>\
+          <button id=\"mediastepforward\" class=\"btn btn-default mediacontrolbutton\"><span class=\"glyphicon glyphicon-step-forward\"></span></button>\
+          <button id=\"mediaclearqueue\" class=\"btn btn-danger mediacontrolbutton\"><span class=\"glyphicon glyphicon-erase\"></span></button>"
+        );
+        $("#mediaplay").click(function() {
+          socket.emit('mediaplay');
+        });
+        $("#mediastop").click(function() {
+          socket.emit('command',{command:'mediastop'});
+        });
+        $("#mediapause").click(function() {
+          socket.emit('command',{command:'mediapause'});
+        });
+        $("#mediastepforward").click(function() {
+          socket.emit('mediastepforward');
+        });
+        $("#mediastepback").click(function() {
+          socket.emit('mediastepback');
+        });
+        $("#mediaclearqueue").click(function() {
+          socket.emit('dequeuemedia');
+        });
+      }
+      this.getQueueList();
+    },
+    drawMediaList: function(list) {
+      this.clearMediaList();
+      list.forEach(this.drawMediaItem,this);
+      $(".folder-label").click(function() {
+        var selectedFolderId = $(this).attr("data-label-for");
+        $("#" + selectedFolderId).toggleClass("hidden");
+      });
+      $(".file-element").click(function() {
+        var path = $(this).attr("data-location");
+        $(this).addClass("touched");
+        mediaPlayer.addQueueItem(path);
+        setTimeout(function(){
+          $(".file-element.touched").removeClass("touched");
+        },500);
+      });
+    },
+    drawMediaItem: function(item,index) {
+      var sanitizeName = function(name) {
+        return name.replace(/ |\.|\'|\"|\!|\?/gi,'_');
+      };
+      var createItem = function(path,file,index,parent) {
+        parent = parent || document.getElementById("medialist");
+        if(index<=(path.length-1)) {
+          var folderElement;
+          var folderElementId = sanitizeName(path.slice(0,index+1).join("-"));
+          console.log("createItem: Looking for element #" + folderElementId);
+          var folderList = parent.querySelectorAll("#" + folderElementId);
+          if(folderList.length===0) {
+            folderElement = document.createElement("div");
+            folderElement.setAttribute("id",folderElementId);
+            folderElement.classList.add("folder-element");
+            folderElement.setAttribute("data-location",path[index]);
+            // Make the folder label element
+            var folderLabelElement = document.createElement("div");
+            folderLabelElement.classList.add("folder-label");
+            folderLabelElement.setAttribute("data-label-for",folderElementId);
+            folderLabelElement.insertAdjacentHTML("beforeend",path[index]);
+            parent.appendChild(folderLabelElement);
+          } else {
+            folderElement = folderList[0];
+          }
+          parent.appendChild(folderElement);
+          createItem(path,file,++index,folderElement);
+        } else {
+          fileElement = document.createElement("div");
+          fileElement.classList.add("file-element");
+          fileElement.setAttribute("data-location",path.join('/') + "/" + file[0]);
+          fileElement.insertAdjacentHTML("beforeend",file[0]);
+          parent.appendChild(fileElement);
+        }
+      };
+      var itemPathArr = item.split('/');
+      if(itemPathArr[0]==="") itemPathArr.shift();
+      createItem(itemPathArr.slice(0,-1),itemPathArr.slice(-1),0);
+    },
+    drawQueueList: function(list) {
+      console.log("<== RECEIVED new queue list");
+      list = JSON.parse(list);
+      var browserNumItems = $(".queueditem").get().length;
+      var extraItems = browserNumItems-list.length;
+      //console.log("drawQueueList: Browser's queue: " + browserNumItems + ". App's queue: " + list.length + ". Extra items: " + extraItems);
+      list.forEach(this.drawQueueItem);
+      if(extraItems) {
+        for(;extraItems>0;extraItems--) {
+          this.eraseQueuedItem((list.length+extraItems)-1);
+        }
+      }
+    },
+    drawQueueItem: function(item,index) {
+      console.log("drawQueueItem: Drawing: " + item + " index: " + index);
+      // If the queue slot already exists...
+      //console.log("drawQueueItem: Checking available slot: " + ($("#queue_" + index).get().length>0));
+      if($("#queue_" + index).get().length===0) mediaPlayer.drawQueueSlot(index);
+      //console.log("drawQueueItem: Checking location: " + $("#queue_" + index + " .queueditem").attr("data-location"));
+      if($("#queue_" + index + " .queueditem").attr("data-location")!=item) {
+        //console.log("drawQueueItem: REPLACING or CREATING new queueditem: " + item);
+        // This queue item has changed - have to REPLACE it
+        // So, we keep the SLOT (the queueItem element) but replace the
+        // queueDitem inside the slot
+        mediaPlayer.eraseQueuedItem(index);
+        // Draw the new item
+        var basename = item.split('/').pop();
+
+        var newQueueItem = document.getElementById("queue_" + index);
+
+        var newQueuedItem = document.createElement("div");
+        newQueuedItem.classList.add("queueditem");
+        newQueuedItem.setAttribute("data-index",index);
+        newQueuedItem.setAttribute("data-location",item);
+        $(newQueueItem).append(newQueuedItem);
+
+        var newQueuedItemTitle = document.createElement("div");
+        newQueuedItemTitle.classList.add("queueitemtitle");
+        newQueuedItem.appendChild(newQueuedItemTitle);
+
+        var dequeueMediaButton = document.createElement("div");
+        dequeueMediaButton.classList.add("dequeuemedia","btn","btn-danger");
+        dequeueMediaButton.setAttribute("data-location",item);
+        newQueuedItemTitle.appendChild(dequeueMediaButton);
+
+        var newQueuedItemIcon = document.createElement("span");
+        newQueuedItemIcon.classList.add("glyphicon","glyphicon-minus-sign");
+        dequeueMediaButton.appendChild(newQueuedItemIcon);
+
+        newQueuedItemTitle.insertAdjacentHTML("beforeend","&nbsp&nbsp" + basename);
+
+        $(newQueuedItem).click(function(e) {
+          var loc = $(this).attr("data-location");
+          var index = $(this).attr("data-index");
+          console.log("==> Requesting PLAY of queued item: " + loc + " (" + index + ")");
+          socket.emit('mediaplay',{media:loc,index:index});
+          e.stopPropagation();
+        });
+        $(dequeueMediaButton).click(function(e) {
+          var index = $(this).parents(".queueditem").attr("data-index");
+          mediaPlayer.removeQueueItem(index);
+          e.stopPropagation();
+        });
+      } else {
+        console.log("drawQueueItem: Item " + item + " already exists");
+      }
+    },
+    drawQueueSlot: function(index) {
+      console.log("drawQueueSlot: Drawing new queue slot: " + index);
+      var newQueueItem = document.createElement("li");
+      newQueueItem.setAttribute("id","queue_" + index);
+      newQueueItem.classList.add("queueitem","list-group-item","no-lines");
+      newQueueItem.setAttribute("data-index",index);
+      if(index===0) {
+        //console.log("drawQueueSlot: Adding new slot in position: " + index);
+        $("#mediaqueuelist").prepend(newQueueItem);
+      } else {
+        //console.log("drawQueueSlot: Inserting new slot after position: " + (index-1));
+        $("#mediaqueuelist").append(newQueueItem);
+      }
+      console.log("drawQueueSlot: Slot successfully created: " + ($("#queue_" + index).get().length>0));
+      return true;
+    },
+    eraseQueuedItem: function(index) {
+      console.log("eraseQueuedItem: Emptying items from slot #" + index);
+      $("#queue_" + index).empty(); // Erases the stuff IN the 'slot'
+    },
+    addQueueItem: function(path) {
+      console.log("==> Requesting ADD of item: " + path);
+      socket.emit('queuemedia',path);
+    },
+    removeQueueItem: function(index) {
+      console.log("==> Requesting REMOVE of queue item number: " + index);
+      socket.emit('dequeuemedia',index);
+    },
+    drawMediaTime: function(obj) {
+      var m = (obj.current/60);
+      var s = (obj.current%60);
+      $("#mediaplaytime").html(formatNum(2,Math.floor(m),"0") + ":" + formatNum(2,Math.round(s),"0"));
+      $("#mediaplay").addClass("active");
+    },
+    updateMediaProgress: function(obj) {
+      if($(".queueditem.nowplaying .progress-bar").get().length===0) {
+        console.log("Could not find a progress bar");
+        if($(".nowplaying").get().length>0) {
+          var index = $(".nowplaying").attr("data-index");
+          this.drawMediaProgressBar(index);
+        }
+      }
+      var progress = Math.floor((1.0*obj.current/obj.total)*100); // Multiplying by a float makes javascript do floating point math
+      progress = (progress<0 || progress>100) ? 0 : progress;
+      $(".progress-bar").css({width:progress + "%"});
+      $(".progress-bar").html(progress+ "%");
+    },
+    drawMediaProgressBar: function(index) {
+      if(index===undefined) return;
+      console.log("drawMediaProgressBar: Drawing progress bar for item: " + index);
+      $(".queueditem.nowplaying").append("\
+        <div class=\"progress\">\
+        <div class=\"progress-bar progress-bar-success\" data-index=\"" + index + "\" role=\"progressbar\" aria-valuenow=\"60\" aria-valuemin=\"0\" aria-valuemax=\"100\" style=\"width: 0%;\"></div>\
+        </div>"
+      );
+    },
+    highlightMediaQueueItem: function(obj) {
+      if(!obj.hasOwnProperty("playing")) return;
+      console.log("Highlighting queue item: " + obj.playing);
+      $(".progress").remove();
+      $(".queueditem").removeClass("nowplaying");
+      $(".queueditem[data-location=\"" + obj.playing + "\"]").addClass("nowplaying");
+    }
+  };
+
+	var formatNum = function(places, number, placeholder) {
+		var outputString = number.toString();
+		var len = outputString.length;
+		for(x=(places-len); x>0; x--) {
+			outputString = placeholder + outputString;
+		}
+		return outputString;
+	};
+
+	var drawProgramLink = function(partId,partName,partTitle,elementType) {
+    elementType = elementType || "li";
+    partTitle = partTitle || "";
+		var iconString = "<span class=\"glyphicon glyphicon-unchecked programitemdisplaysuccess\"></span>&nbsp;";
+    var linkString = "<" + elementType + " id=\"" + partId + "\" class=\"parts list-group-item\">" + iconString + "<span class=\"parttitle\">" + partTitle + "</span>: <span class=\"partname\">" + partName + "</span></" + elementType + ">";
+		$("#programctl").append(linkString);
+	};
+
+	var setProgramLinkTrigger = function(partNum) {
+		$("#" + partNum).click(function() {
+			socket.emit('command',{command:'writeBanner',param:partNum});
+		});
+	};
+
+  var confirmProgramItem = function(data) {
+    unCheckProgramItem();
+    checkProgramItem(data);
+  };
+
+  var unCheckProgramItem = function() {
+    $(".programitemdisplaysuccess").removeClass("glyphicon-check").addClass("glyphicon-unchecked");
+  };
+
+  var checkProgramItem = function(data) {
+    if(data!=null && data!="") $("#" + data + ">span.programitemdisplaysuccess").removeClass("glyphicon-unchecked").addClass("glyphicon-check");
+  };
+
+	var clearControls = function() {
+		$("#programctl").empty();
+	};
+
+	var logIt = function(string) {
+    if(log_level) $("#logs").append(string + "\n");
+	};
+
+  socket.on('playerconfirmed',function() {
+    mediaPlayer.unrespondedMediaPlayerRequests=0;
+    mediaPlayer.drawPlayerControls(true);
+  });
+
+	socket.on("medialist",function(list) {
+		if(!list) return;
+		mediaList = JSON.parse(list);
+		mediaPlayer.drawMediaList(mediaList);
+	});
+
+  socket.on("queuelist",function(list) {
+    mediaPlayer.drawQueueList(list);
+  });
+
+  socket.on('mediaplaying',function(obj) {
+    $("#mediaplay").addClass("active");
+    //mediaPlayer.highlightMediaQueueItem(obj);
+  });
+
+  socket.on('mediaprogress',function(obj) {
+    console.log("<== GOT 'mediaprogress' message on for: " + obj.playing);
+    mediaPlayer.highlightMediaQueueItem(obj)
+    mediaPlayer.drawMediaTime(obj);
+    mediaPlayer.updateMediaProgress(obj);
+  });
+
+  socket.on('mediastopped',function(obj) {
+    if(obj) console.log("Media: " + obj.param + " has stopped");
+    $("#mediaplaytime").empty();
+    $(".mediacontrolbutton").removeClass("active");
+  });
+
+  socket.on('mediapause',function() {
+    $("#mediaplay").removeClass("active");
+    $('#mediapause').addClass("active");
+  });
+
+	socket.on("program", function(program) {
+		if(!program) return;
+		clearControls();
+		logIt(program);
+		program = JSON.parse(program);
+		var programParts = ["title","chairman1","chairman2"];
+		for(var c=0; c<programParts.length; c++) {
+			if(program.hasOwnProperty(programParts[c])) {
+				if(program[programParts[c]].length>0) {
+					drawProgramLink(programParts[c],program[programParts[c]],programParts[c],"a");
+					setProgramLinkTrigger(programParts[c]);
+				}
+			}
+		}
+		if(program.hasOwnProperty("parts")) {
+			var parts = Object.keys(program.parts);
+			for(var c=0; c<parts.length; c++) {
+				//logIt("Part " + c + " " + program.parts[c].name);
+				drawProgramLink(c,program.parts[c].name,program.parts[c].title,"a");
+				setProgramLinkTrigger(c);
+			};
+		}
+		//var buttonString = "<li id=\"clearscreen\" class=\"parts btn btn-danger btn-lg btn-block\"><span class=\"glyphicon glyphicon-erase\"></span>&nbsp;Clear Screen</li>";
+    var buttonString = "<a id=\"clearscreen\" class=\"parts list-group-item\"><span class=\"glyphicon glyphicon-erase\"></span>&nbsp;Clear Screen</a>";
+		$("#programctl").append(buttonString);
+		$("#clearscreen").click(function() {
+			socket.emit('command',{command:'clear'});
+		});
+	});
+
+  socket.on('bannercomplete',function(data) {
+    console.log("Banner complete: " + JSON.stringify(data));
+    if(data!==null && data!="undefined") {
+      confirmProgramItem(data);
+    } else {
+      unCheckProgramItem();
+    }
+  });
+
+	$("#clearscreen").click(function() {
+		socket.emit('command',{command:'clear'});
+	});
+
+	$("#getprogram,#getprogrambtn").click(function(e) {
+		socket.emit('getprogram');
+    e.stopPropagation();
+	});
+
+  /**
+   * Media control commands:
+   *	var loc = $(this).attr("location");
+	 *	socket.emit('command',{command:'playmedia',param:loc});
+	 *	socket.emit('command',{command:'queuemedia',param:loc});
+	 *	socket.emit('command',{command:'dequeuemedia',param:loc});
+	 *	socket.emit('command',{command:'stopmedia',param:loc});
+	 *	socket.emit('command',{command:'pausemedia',param:loc});
+	 *
+	 * Buttons to trigger:
+	 *  "queuemedia" <-- used in the media item
+	 *  "dequeuemedia"
+	 *  "mediastepback"
+	 *  "mediaplay"
+	 *  "mediapause"
+	 *  "mediastop"
+	 *  "mediastepforward"
+	 */
+	$("#getmedia,#getmediabtn").click(function(e) {
+		socket.emit('getmedia',{command:'getmedia'});
+    e.stopPropagation();
+	});
+
+  $("#refreshmedia").click(function(e) {
+    socket.emit('refreshmedia');
+    e.stopPropagation();
+  });
+
+	$("#getqueuebtn").click(function(e) {
+		socket.emit('queuelist');
+    e.stopPropagation();
+	});
+
+	$("#clearmedia").click(function() {
+		socket.emit('command',{command:'clearmedia'});
+	});
+
+  //$("#programtextheading").click(function() {
+  //  $("#programpanel").toggleClass(standardPanelClass);
+  //  $("#programctl").children().toggleClass("hidden");
+  //});
+
+  //$("#medialibraryheading").click(function() {
+  //  $("#mediaqueuepanel").toggleClass(standardPanelClass);
+  //  $("#medialist").children().toggleClass("hidden");
+  //});
+
+  $(document).ready(function() {
+    mediaPlayer.drawPlayerControls();
+    mediaPlayer.requestPlayer();
+  });
+</script>
+</body>
+</html>

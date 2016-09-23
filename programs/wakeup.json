@@ -1,0 +1,25 @@
+{
+  "bug":"",
+  "title":"Wake Up!",
+  "subtitle":"Morning Panel Discussion",
+  "chairman1":"Thom Thomson",
+  "chairman2":"John Johnson",
+  "parts":{
+    "0":{
+      "name":"Rosa Rosario",
+      "title":"Horticulturist"
+    },
+    "1":{
+      "name":"Eric Ericsson",
+      "title":"Mobile Analyst"
+    },
+    "2":{
+      "name":"Portia Gofast",
+      "title":"Professional Driver"
+    },
+    "3":{
+      "name":"Abel Bodiedman",
+      "title":"Personal Trainer"
+    }
+  }
+}

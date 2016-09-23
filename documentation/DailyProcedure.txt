@@ -1,0 +1,42 @@
+1. Make sure all control-room hardware is on
+
+Turn on the two monitors on the controller's desk
+Make sure the HP Procurve Switch is ON (blinking green lights)
+Make sure the Blackmagic video mixer is ON
+Make sure the Skaarhoj video switcher thing is ON
+Make sure the main and backup black boxes are ON
+(Optional) Make sure the Lenovo laptop is ON 
+
+2. Set up the video camera(s) in Dining Hall
+
+Batteries
+  Charged?
+Tripod
+  Leveled and Balanced?
+Cables
+  SDI cable?
+  IRIS control cable
+  ZOOM control cable
+
+3. Turn on TVs
+
+TVs switched to HDMI input?
+
+4. Ensure that the Program ("clock") interface has started
+
+Should have started automatically. Should see the "clock" on all TVs
+
+4. "Parts" have been entered into the system
+
+Enter the parts from any computer attached to the video system network (tablet, Lenovo laptop, backup black box)
+
+5. "Parts" caption text tested
+
+Test from the main black box, or any other attached host (tablet/phone, Lenovo laptop, etc)
+
+6. Skaarhoj Video Switcher Thing is working
+
+Channel 5 is selected?
+Channel 6 is also selected?
+Pressing the "Auto" or "Cut" button switches video channels?
+

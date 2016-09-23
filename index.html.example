@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Worship Program</title>
+	<meta name="description" content="">
+	<meta name="author" content="">
+  <link rel="stylesheet" href="/stylesheets/bootstrap.min.css" type="text/css">
+</head>
+<body>
+<div class="container-fluid">
+	<div class="row">
+		<div class="col-sm-6"></div>
+		<div class="col-sm-6"></div>
+	</div>
+	<div class="row">
+		<pre id="logs"></pre>
+	</div>
+</div>
+<script src="/javascripts/jquery.js"></script>
+<script src="/javascripts/bootstrap.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+	var socket = io();
+	var logIt = function(string) {
+		$("#logs").append(string + "\n");
+	};
+
+	socket.on("medialist",function(l) {
+		if(!l) return;
+		logIt(l);
+		mediaList = JSON.parse(l);
+		drawMediaList(mediaList);
+	});
+
+	socket.on("program", function(program) {
+		if(!program) return;
+		clearControls();
+		logIt(program);
+		program = JSON.parse(program);
+		var programParts = ["title","chairman1","chairman2"];
+		for(var c=0; c<programParts.length; c++) {
+			if(program.hasOwnProperty(programParts[c])) {
+				if(program[programParts[c]].length>0) {
+					drawProgramButton(programParts[c],program[programParts[c]]);
+					setProgramButtonTrigger(programParts[c]);
+				}
+			}
+		}
+		if(program.hasOwnProperty("parts")) {
+			var parts = Object.keys(program.parts);
+			for(var c=0; c<parts.length; c++) {
+				logIt("Part " + c + " " + program.parts[c].name);
+				drawProgramButton(c,program.parts[c].name);
+				setProgramButtonTrigger(c);
+			};
+		}
+		var buttonString = "<button id=\"clearscreen\" class=\"parts btn btn-danger btn-lg btn-block\">Clear Screen</button>";
+		$("#programctl").append(buttonString);
+		$("#clearscreen").click(function() {
+			socket.emit('command',{command:'clear'});
+		});
+	});
+
+	$("#clearscreen").click(function() {
+		socket.emit('command',{command:'clear'});
+	});
+
+	$("#getprogram").click(function() {
+		socket.emit('command',{command:'getprogram'});
+	});
+
+	$("#getmedia").click(function() {
+		socket.emit('getmedia',{command:'getmedia'});
+	});
+
+	$("#playmedia").click(function() {
+		socket.emit('command',{command:'playmedia',param:'/music/FirstTrainHome.m4a'});
+	});
+
+	$("#playvideo").click(function() {
+		socket.emit('command',{command:'playmedia',param:'/video/Climb.mp4'});
+	});
+
+	$("#clearmedia").click(function() {
+		socket.emit('command',{command:'clearmedia'});
+	});
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+PROGRAMS AND PARTS
+
+The Program Graphics System comes with several "template" programs that can be used as references. These can be found in the programs/ sub-folder.
+
+The template programs are .JSON files that describe all of the "parts" used in that particular program.
+
+Here is an example of a simple program called wakeup.json:
+
+===
+{
+  "bug":"",
+  "title":"Wake Up!",
+  "subtitle":"Morning Panel Discussion",
+  "chairman1":"Thom Thomson",
+  "chairman2":"John Johnson",
+  "parts":{
+    "0":{
+      "name":"Rosa Rosario",
+      "title":"Horticulturist"
+    },
+    "1":{
+      "name":"Eric Ericsson",
+      "title":"Mobile Analyst"
+    },
+    "2":{
+      "name":"Portia Gofast",
+      "title":"Professional Driver"
+    },
+    "3":{
+      "name":"Abel Bodiedman",
+      "title":"Personal Trainer"
+    }
+  }
+}
+===
+
+You can edit any of these files with any text editor (as long as you honor JSON formatting rules).
+
+PROGRAM.JSON
+
+The Program Graphics will save modifications to the program.json file. If no program is specified it will load this file by default. 

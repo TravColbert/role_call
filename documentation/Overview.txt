@@ -1,0 +1,239 @@
+The Program Graphics System
+
+Objectives:
+
+The program graphics system manages the insertion of auxiliary media into a video stream. By “auxiliary media” we mean: text captions, video, images or audio.
+
+The system is designed to be flexible enough to support diverse types of live applications like meetings and conferences, assemblies and conventions, and other programs involving multiple parts and participants where those tites, themes and names of those parts and participants could be overlayed on a video screen.
+
+All auxiliary graphics are output in HD-quality and are intended to be overlayed onto a video stream using chroma- or luminance-masking by a video-mixer.
+
+On an overall level the system is composed of one or more:
+
+“Program” clients – the HD video output containing the auxiliary media
+“Control” clients – allows one or more program controllers to manipulate the auxiliary media that appears in the video stream. The auxiliary media might be program text captions, video, audio or images. The "control" interface has a program text selector, a media list and a media player control built into the page.
+“Parts” clients – allows one or more program controllers to enter text captions that shall be called onto the video stream
+
+The software system is controlled by one:
+
+“Main App” - the central network server that coordinates communication between the above interfaces using web-sockets, reads media from the local computer, and drives video into the video mixer
+
+
+                  [display network]                     \
+                          |                             |
+                          |                             |
+     [multi-view]---[video mixer]---[cam]---[cam]       +-- a/v network
+                          |                             |
+                  .   .   .  .  .  .                    /
+[program client] . [program client] . [program client]
+        |        .        |         .       |           \
+        +--------.--------+---------.-------+- . . .    |
+                 .        |         .                   |
+                 . [main app server].                   +-- ethernet network
+                  .   .   .  .  .  .                    |
+                          |                             |
+        +-----------------+-----------------+- . . .    |
+        |                 |                 |           |
+ [control client]  [control client]  [control client]   /
+
+
+The [program client], [main app server] and [control client] can be separate hosts - but they don't have to be.
+
+For example, the [main app server] can and does also run a [program client]. I have attempted to indicate that with the dots surrounding the central [program client] and the [main app server] in the diagram above. This allows it to feed the video display network that it is attached to. In that case, the basic program graphics system network consists of a [main app server] and a computer running the [control client].
+
+The A/V network itself is composed of many parts - most of which are outside the scope of this document.
+
+Hardware Layout
+
+Here are the hardware components that are represented by the above diagram:
+
+[video mixer]       Blackmagic ATEM Video Switch
+                    Skaarhoj Hardware Video Switch Controller
+[a/v network]       Blackmagic H.264 converter
+                    podDI audio converter
+[program client]    Main "Black Box"
+                      (other clients)
+[main app server]   Main “Black Box”
+                    Backup “Black Box”
+[control client]    Lenovo Carbon Laptop
+                      (other clients)
+[ethernet network]  HP ProCurve Switch 24-port
+
+It should be noted that the [program client] that feeds the graphics to the [video mixer] has NO DISPLAY of its own. It feeds all of its display to the [video mixer]. The [video mixer] shows a small output of what the main [program client] is displaying through the [multi-view] monitor in the video control room.
+
+Software Layout
+
+[main app server]
+“role_call” - node.js application running in the background on main “black box.” This is the [main app server] software in the above diagram.
+
+Web browsers - opened to the address of 'http://<main app server>:3000/<URL>'. Here are the URLs that correspond to the main software components of the system:
+
+[program client]s
+http://<main app server>:3000
+http://<main app server>:3000/program
+ - These are the [program client]s in the diagram above
+ - The above two URLs can be fetched by any number of client browsers to see the actual graphics media (text captions, videos, audio or images). This allows one or more clients to show the same graphics media at the same time. The main black box itself automatically starts a kiosk-mode web browser targeting this URL to show the program graphics. 
+
+[control client]s
+http://<main app server>:3000/control
+ - These are the [control client]s in the diagram above
+ - The above URL can be fetched by any number of client browsers to control or monitor the graphics media (text captions, videos, audio, or images).
+
+http://<main app server>:3000/parts
+ - These are ALSO a part of the [control client]s above - its just a different administrative page in the [control client].
+ - The above URL can be fetched by any number of client browsers to enter program text captions that will be used by the program.
+
+
+STARTING the SOFTWARE and HARDWARE:
+
+HARDWARE:
+
+There should be very few reasons to restart any of the hardware. We have seen that the hardware normally reliably runs without restarting equipment.
+
+However, if for some reason, parts of the system's hardware must be restarted, you should follow this order:
+
+1. Start the HP Procurve Switch FIRST
+2. Start the Blackmagic video mixer NEXT
+3. Start the Skaarhoj video switcher thing NEXT
+4. Start the main and backup black boxes LAST
+
+After each step and before the next, make sure that that previous component is fully booted. The HP Procurve probably takes the longest to boot out of all the components.
+
+Starting the HP Procurve Switch:
+Simply plug the power cable into the switch.
+
+The switch takes several minutes to start - as much as 3 minutes. Be patient and give it time.
+
+Starting the Blackmagic video mixer:
+There should be very few reasons to restart the video mixer. The smoothest way to make all of the systems "see" each other if you ever need to restart everything is to:
+
+1. Start the HP Procurve Switch FIRST
+2. Start the Blackmagic video mixer NEXT
+3. Start the Skaarhoj video switcher thing NEXT
+4. Start the main and backup black boxes LAST
+
+The video mixer does not have a power button. Simply plug or un-plug the mixer to turn it off.
+
+When the Blackmagic starts it will, by default, set it's video input channels to "1" and "2". So, after the Blackmagic has been restarted you should reset the video channels on the Blackmagic to "5" and "6." (see the Skaarhoj instructions below for how to do this)
+
+Starting the Skaarhoj Video Switch:
+Simply plug the switch's power supply into the unit. The Blackmagic video mixer should already be fully booted BEFORE you start the Skaarhoj switch thing.
+
+Make sure that the video-mixer's video channels are selected as follows:
+
+ 1 2 3 4 5 6
++-+-+-+-+-+-+
+| | | | |X| |
++-+-+-+-+-+-+
+| | | | | |X|
++-+-+-+-+-+-+
+
+This is because channels 5 and 6 are what the video cameras are connected to. When you use the little switcher you will be switching between channels 5 and 6 most of the time.
+
+Starting the main black box server:
+Simply press the power button on the main black box. This will start the main black box computer.
+The "app" server and "program (clock)" web interface starts automatically when the main black box is started.
+
+NOTE:
+It usually takes no more then 60 seconds for the main black box and program graphics system to be fully operational. However, if the main black box has a network interface that is not properly configured then it will take several minutes for anything to show on the video screen. In practice, we've seen this if one of the un-used network interfaces has been configured for DHCP, yet there are no DHCP servers available, or the network interface is not plugged into an operational network.
+
+In this case it can take as long as 3 minutes from the time you press the power button to the time the system is fully ready to go. 
+
+This is a consequence of the current boot process of the black box itself. It does not start the 'X' server and program web browser (aka the "clock") until after all network interfaces are operational. Please do not be alarmed if the screen remains black for a long time. If, after 5 minutes, the program interface ("clock") does not appear on-screen. Simply turn the main black box off and turn it back on again.
+
+The key is making the black box acquire an IP address as soon as possible. Better to assign static IP addresses to all network interfaces for the fastest reaction-time. (Edit the '/etc/network/interfaces' file on the main black box to correct this problem)
+
+
+SOFTWARE
+Re-Starting the server:
+There should be very few reasons to restart the main black box. In testing it has remained running for days at a time and continued to work well.
+
+The simplest way to restart the "App" server is to physically restart the whole main black box (see above).
+
+However, if you need to start the app server manually, there are two techniques:
+
+EASY TECHNIQUE:
+
+Simply press the following key-combination:
+
+   WINDOWS-a
+
+That's the 'Windows' key plus the 'a' key.
+
+A dialog box will appear on the screen asking if you would like to restart the App Server. If you want to go ahead, press: "Yes! Restart". Otherwise, press: "No".
+
+If you press "Yes! Restart" the dialog box will remain open and the [main app server] will be run from within that dialog box. DO NOT CLOSE THE DIALOG box - otherwise the [main app server] will be closed.
+
+HARDER BUT CLEANER TECHNIQUE:
+If you want a cleaner, more permanent way of restarting the [main app server] then do this:
+
+===
+Open a "terminal" on the main black box (right-click on the desktop and pick: "Terminal emulator")
+
+cd ~/role_call
+killall node
+node app.js &
+
+Close the "terminal" window
+===
+
+This will start the "App" server.
+
+Stopping the server:
+Simply press the power button on the main black box. Just press the power button momentarily. There is normally no need to HOLD the power button down. After momentarily pressing the power button you will notice that the bright blue power light will go out. This means that the main computer is now turned off.
+
+There should normally be very few reasons to stop the "App" server itself.
+
+Starting the Program Client (clock):
+
+The [program client] (clock) usually starts automatically when the [main app server] black box is turned on. Usually, there is no need to manually start the program client.
+
+However, if, for maintenance reasons, the porgram client has been stopped you can restart the client using the following cool keyboard shortcut:
+
+   WINDOWS-w
+
+That's the 'Windows' key + the 'w' key.
+
+Google Chrome is kind of a big program so it will take several seconds before you see anything on the screen. After a few seconds you should see the clock once more.
+
+KEYBOARD TECHNIQUES:
+
+Controlling the Program Text through the "Program" interface:
+
+These are the keys that can be used to control the CAPTIONS in the system:
+
+T : Title (and subtitle) of program
+P : Presider or main chairman
+R : Reader or secondary chairman
+0 : Presider or main chairman (alternative to 'P')
+1-9 : "Part" numbers. These correspond to individual "parts" in a program. They might stand for commentors in a panel discussion, or individual talks, speeches or presentations scheduled for the program
+
+Any other key clears the caption text from the screen.
+
+Other keyboard controls:
+
+* : Asterisk on NUMBER PAD resets the height of the caption banner back to its default
++ : Plus on NUMBER PAD increases the height of the caption banner
+- : Minus on NUMBER PAD decreases the height of the caption banner
+
+Hiding the "Program (clock)" page on the main black box:
+
+The main black box usually runs a copy of the Program page (we used to call it the "Clock"). The Program page is simply the Google Chrome (Chromium) web browser that has been started in "kiosk" mode. Kiosk mode means the browser shows very few interface components.
+
+There should be very few reasons why the Program page must be hidden or minimized. However, if you need to do so simply use the following keyboard combinations:
+
+Minimize: CTRL-SPACEBAR N
+Maximize: CTRL-SPACEBAR X
+Full-screen mode: F11
+
+You will notice that there are the typical keyboard-centric commands that you would use in Windows. For example:
+
+Close: ALT-F4
+SWitch to another window: ALT-TAB
+
+Refreshing the "Program (clock)" page on the main black box:
+
+Again, you simply use the common "Windows" keystrokes to discreetly refresh the web page. You have a choice of:
+
+CTRL-R or F5
+

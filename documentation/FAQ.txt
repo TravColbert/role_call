@@ -1,0 +1,71 @@
+FREQUENTLY ASKED QUESTIONS:
+
+#. Sometimes the Program ("clock") appears unresponsive when I press a keyboard key to call up some caption text. What should I do?
+
+This happens because the 'focus' of the main black box's screen has moved away from the Program ("clock") page. This is simply because the main black box is running a 'windowing system' much like Microsoft Windows. There may be events that occur (like another window open somewhere on the desktop) that make the windowing system switch focus to a window other than the Program interface.
+
+To fix this problem, simply discreetly click anywhere on the Program ("clock") page to make it the focus. You can also use the ALT-TAB keystroke to switch to the browser window again.
+
+(We prefer the mouse method over the ALT-TAB method because the mouse method is visually less visually-intrusive than the ALT-TAB method.)
+
+#. I can see the mouse cursor on the Dining Hall TVs. What do I do?
+
+Simply move the mouse (connected to the main black box) so that the cursor is not visible.
+
+#. What web browsers are supported by the system?
+
+The browsers that work the best are:
+  Google Chrome (the browser being used by the main black box machine itself)
+  Mozilla Firefox
+  Microsoft Edge
+
+Microsoft Internet Explorer 11 and below do not render some parts of the system correctly. It would be best not to use this browser.
+
+#. There is an orange blinking light on the HP Procurve. Should I be worried?
+
+Not really, it's an old switch that needs to be replaced but the error does not affect networking functionality of the switch.
+
+#. A few minutes before the program begins I want to TEST the playing of a video, music or image but I do not want it to appear on the screens visible to the audience. How can I do that?
+
+Unfortunately, the main black box is directly tied to the video mixer which is directly tied to the monitors in the audience. If anything, appears on the main black box's screen it will be visible to the audience.
+
+However, since the whole system is distributed, you CAN close or minimize the browser window on the main black box so that the video or image is not visible. Use the CTRL-SPACEBAR N key combination to minimize the window. Then, you can open ANOTHER browser window on another laptop or computer connected to the system and play the video from there.
+
+Simply open a new browser from another computer connected to the program network. Point the browser to 'http://<main black box>:3000/'.
+
+Now, when you play the video from a 'control' interface, the video will be played on that browser. 
+
+#. What video setting should all of the video components be set to?
+
+The short answer. Set EVERYTHING to:
+
+720p50
+
+The video components (cameras, main black box, Blackmagic video mixer, Lenovo Carbon HDMI port, etc) should all be set to talk the same video settings. This is extremely important for a properly-configured network.
+
+ - FOR EXPERTS -
+ 
+Related to the above FAQ entry on the global video settings used by the who video network is the below technical stuff.
+
+#. How do I set the video setting on the main app server's hardware to match the Blackmagic's required video settings?
+
+This is kind of hard. But basically, you have to set the X mode line in the '/etc/X11/xorg.conf' file to the following:
+
+        Modeline        "1280x720_50.00"   60.50  1280 1328 1456 1632  720 723 728 744 -hsync +vsync
+        Option          "PreferredMode" "1280x720_50.00"
+
+That will do the trick.
+
+#. 720p50 only?! That's hardly what I'd call 'HD' Those black boxes suck!
+
+It is true that the Blackmagic mixers can go higher than 720 and the TVs can go higher too. The black boxes aren't the most powerful things in the world but the video cameras themselves are also only set at 720p. 720p50 is the upper limit of the complete video system as a whole. We can only go as high as the weakest part of the system.
+
+In this case, the weakest part of the system is recording/converting/streaming the resultant video stream to the Internet.
+
+#. When I connect to the main black box over 'ssh' I get the following small error message: "X: user not authorized to run the X server, aborting." What does this mean?
+
+This is because I mis-configured how X is started on the main black box. This is not normally how X (the windowing system) should be run. It is nothing to be worried about. This will be fixed in a future update.
+
+#. How do I update the system?
+
+I shall be continually developing and updating the system. I have created a script that attempts to make updating the system easy. 
